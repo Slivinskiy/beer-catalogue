@@ -18,10 +18,15 @@ import com.haufe.beercatalogue.controller.dto.ManufacturerResponse;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.service.ManufacturerService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/v1/manufacturers")
+@Tag(name = "Manufacturers", description = "Browse and manage beer manufacturers.")
 public class ManufacturerController {
     private final ManufacturerService manufacturerService;
 
@@ -30,6 +35,8 @@ public class ManufacturerController {
     }
 
     @GetMapping
+    @Operation(summary = "List manufacturers", description = "Returns all manufacturers.")
+    @ApiResponse(responseCode = "200", description = "Manufacturers returned successfully")
     public List<ManufacturerResponse> findAll() {
         return manufacturerService.findAll().stream()
                 .map(ManufacturerResponse::from)
@@ -37,11 +44,21 @@ public class ManufacturerController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Get manufacturer details", description = "Returns a single manufacturer by id.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Manufacturer returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Manufacturer not found")
+    })
     public ManufacturerResponse findById(@PathVariable final Long id) {
         return ManufacturerResponse.from(manufacturerService.findById(id));
     }
 
     @PostMapping
+    @Operation(summary = "Create manufacturer", description = "Creates a new manufacturer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Manufacturer created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data")
+    })
     public ResponseEntity<ManufacturerResponse> create(@Valid @RequestBody final ManufacturerRequest request) {
         final var manufacturer = new Manufacturer(request.name(), request.countryOfOrigin());
         final var createdManufacturer = manufacturerService.create(manufacturer);
@@ -53,16 +70,24 @@ public class ManufacturerController {
     }
 
     @PutMapping("/{id}")
-    public ManufacturerResponse update(
-            @PathVariable final Long id,
-            @Valid @RequestBody final ManufacturerRequest request
-    ) {
+    @Operation(summary = "Update manufacturer", description = "Updates an existing manufacturer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Manufacturer updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request data"),
+            @ApiResponse(responseCode = "404", description = "Manufacturer not found")
+    })
+    public ManufacturerResponse update(@PathVariable final Long id, @Valid @RequestBody final ManufacturerRequest request) {
         final var manufacturer = new Manufacturer(request.name(), request.countryOfOrigin());
         final var updatedManufacturer = manufacturerService.update(id, manufacturer);
         return ManufacturerResponse.from(updatedManufacturer);
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete manufacturer", description = "Deletes a manufacturer by id.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Manufacturer deleted successfully"),
+            @ApiResponse(responseCode = "404", description = "Manufacturer not found")
+    })
     public ResponseEntity<Void> delete(@PathVariable final Long id) {
         manufacturerService.delete(id);
         return ResponseEntity.noContent().build();
