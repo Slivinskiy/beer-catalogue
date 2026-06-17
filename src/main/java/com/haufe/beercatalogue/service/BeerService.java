@@ -2,6 +2,7 @@ package com.haufe.beercatalogue.service;
 
 import java.util.List;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,11 @@ public class BeerService {
     @Transactional(readOnly = true)
     public List<Beer> findAll() {
         return beerRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Beer> findAll(final Sort sort) {
+        return beerRepository.findAll(sort);
     }
 
     @Transactional(readOnly = true)
