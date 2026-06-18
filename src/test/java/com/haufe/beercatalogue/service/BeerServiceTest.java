@@ -32,6 +32,9 @@ class BeerServiceTest {
     @Mock
     private ManufacturerRepository manufacturerRepository;
 
+    @Mock
+    private AccessService accessService;
+
     @InjectMocks
     private BeerService beerService;
 

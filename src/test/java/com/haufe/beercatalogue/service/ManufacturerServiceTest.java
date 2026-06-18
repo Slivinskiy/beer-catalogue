@@ -25,6 +25,9 @@ class ManufacturerServiceTest {
     @Mock
     private ManufacturerRepository manufacturerRepository;
 
+    @Mock
+    private AccessService accessService;
+
     @InjectMocks
     private ManufacturerService manufacturerService;
 
