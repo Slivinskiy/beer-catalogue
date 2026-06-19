@@ -1,7 +1,7 @@
 package com.haufe.beercatalogue.service;
 
-import java.util.List;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,8 +21,8 @@ public class ManufacturerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Manufacturer> findAll() {
-        return manufacturerRepository.findAll();
+    public Page<Manufacturer> findAll(final Pageable pageable) {
+        return manufacturerRepository.findAll(pageable);
     }
 
     @Transactional(readOnly = true)

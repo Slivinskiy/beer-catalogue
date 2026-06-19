@@ -1,9 +1,8 @@
 package com.haufe.beercatalogue.service;
 
 import java.math.BigDecimal;
-import java.util.List;
-
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,25 +32,15 @@ public class BeerService {
     }
 
     @Transactional(readOnly = true)
-    public List<Beer> findAll() {
-        return beerRepository.findAll();
-    }
-
-    @Transactional(readOnly = true)
-    public List<Beer> findAll(final Sort sort) {
-        return beerRepository.findAll(sort);
-    }
-
-    @Transactional(readOnly = true)
-    public List<Beer> findAll(
+    public Page<Beer> findAll(
             final String name,
             final BeerType type,
             final BigDecimal abv,
             final String manufacturer,
-            final Sort sort
+            final Pageable pageable
     ) {
         final var specification = buildSpecification(name, type, abv, manufacturer);
-        return beerRepository.findAll(specification, sort);
+        return beerRepository.findAll(specification, pageable);
     }
 
     @Transactional(readOnly = true)

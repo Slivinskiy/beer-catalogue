@@ -108,12 +108,16 @@ class BeerControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Punk IPA"));
 
         mockMvc.perform(get("/api/v1/beers")
+                        .param("page", "0")
+                        .param("size", "10")
                         .param("sortBy", "name")
                         .param("direction", "asc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].name").value("Foreign Extra Stout"))
-                .andExpect(jsonPath("$[1].name").value("Punk IPA"));
+                .andExpect(jsonPath("$.content", hasSize(2)))
+                .andExpect(jsonPath("$.content[0].name").value("Foreign Extra Stout"))
+                .andExpect(jsonPath("$.content[1].name").value("Punk IPA"))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1));
 
         final var updateRequest = """
                 {
@@ -175,12 +179,16 @@ class BeerControllerIntegrationTest {
                         .param("type", "IPA")
                         .param("abv", "5.60")
                         .param("manufacturer", "brew")
+                        .param("page", "0")
+                        .param("size", "10")
                         .param("sortBy", "name")
                         .param("direction", "asc"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].name").value("Punk IPA"))
-                .andExpect(jsonPath("$[0].manufacturerId").value(brewdog.getId()));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("Punk IPA"))
+                .andExpect(jsonPath("$.content[0].manufacturerId").value(brewdog.getId()))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
     }
 
     @Test
