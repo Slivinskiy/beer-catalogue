@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.exception.NotFoundException;
@@ -37,11 +40,12 @@ class ManufacturerServiceTest {
                 new Manufacturer("BrewDog", "Scotland"),
                 new Manufacturer("Guinness", "Ireland")
         );
-        when(manufacturerRepository.findAll()).thenReturn(manufacturers);
+        final var pageable = PageRequest.of(0, 20);
+        when(manufacturerRepository.findAll(eq(pageable))).thenReturn(new PageImpl<>(manufacturers));
 
-        final var result = manufacturerService.findAll();
+        final var result = manufacturerService.findAll(pageable);
 
-        assertEquals(manufacturers, result);
+        assertEquals(manufacturers, result.getContent());
     }
 
     @Test

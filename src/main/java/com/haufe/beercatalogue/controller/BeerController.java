@@ -1,9 +1,14 @@
 package com.haufe.beercatalogue.controller;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,10 +19,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.haufe.beercatalogue.controller.dto.BeerRequest;
 import com.haufe.beercatalogue.controller.dto.BeerResponse;
 import com.haufe.beercatalogue.domain.Beer;
+import com.haufe.beercatalogue.domain.BeerType;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.service.BeerService;
 
@@ -40,23 +47,28 @@ public class BeerController {
     }
 
     @GetMapping
-    @Operation(summary = "List beers", description = "Returns all beers with optional sorting.")
+    @Operation(summary = "List beers", description = "Returns beers with optional filtering and sorting.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Beers returned successfully"),
-            @ApiResponse(responseCode = "400", description = "Unsupported sort field or direction")
+            @ApiResponse(responseCode = "400", description = "Invalid filter, sort field, sort direction, or pagination")
     })
-    public List<BeerResponse> findAll(
+    public Page<BeerResponse> findAll(
+            @RequestParam(required = false) final String name,
+            @RequestParam(required = false) final BeerType type,
+            @RequestParam(required = false) final BigDecimal abv,
+            @RequestParam(required = false) final String manufacturer,
+            @RequestParam(defaultValue = "0") final int page,
+            @RequestParam(defaultValue = "100") final int size,
             @RequestParam(defaultValue = "name") final String sortBy,
             @RequestParam(defaultValue = "asc") final String direction
     ) {
         validateSortField(sortBy);
+        validatePagination(page, size);
 
         final var sortDirection = Sort.Direction.fromString(direction);
-        final var sort = Sort.by(sortDirection, sortBy);
+        final Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
 
-        return beerService.findAll(sort).stream()
-                .map(BeerResponse::from)
-                .toList();
+        return beerService.findAll(name, type, abv, manufacturer, pageable).map(BeerResponse::from);
     }
 
     @GetMapping("/{id}")
@@ -67,6 +79,32 @@ public class BeerController {
     })
     public BeerResponse findById(@PathVariable final Long id) {
         return BeerResponse.from(beerService.findById(id));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload beer image", description = "Uploads or replaces the image for a beer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Image uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid image file"),
+            @ApiResponse(responseCode = "404", description = "Beer not found")
+    })
+    public ResponseEntity<Void> uploadImage(@PathVariable final Long id, @RequestParam("file") final MultipartFile file) {
+        beerService.uploadImage(id, file);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/image")
+    @Operation(summary = "Get beer image", description = "Returns the image for a beer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Image returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Beer or image not found")
+    })
+    public ResponseEntity<byte[]> getImage(@PathVariable final Long id) {
+        final var image = beerService.getImage(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(image.content());
     }
 
     @PostMapping
@@ -113,6 +151,16 @@ public class BeerController {
     private void validateSortField(final String sortBy) {
         if (!ALLOWED_SORT_FIELDS.contains(sortBy)) {
             throw new IllegalArgumentException("Unsupported sort field: " + sortBy);
+        }
+    }
+
+    private void validatePagination(final int page, final int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("Page must be greater than or equal to 0");
+        }
+
+        if (size < 1) {
+            throw new IllegalArgumentException("Size must be greater than 0");
         }
     }
 

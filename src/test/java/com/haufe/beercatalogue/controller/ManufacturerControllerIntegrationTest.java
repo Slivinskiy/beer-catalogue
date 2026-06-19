@@ -74,8 +74,10 @@ class ManufacturerControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/manufacturers"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].name").value("BrewDog"));
+                .andExpect(jsonPath("$.content", hasSize(1)))
+                .andExpect(jsonPath("$.content[0].name").value("BrewDog"))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
 
         mockMvc.perform(get("/api/v1/manufacturers/{id}", createdManufacturer.getId()))
                 .andExpect(status().isOk())

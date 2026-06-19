@@ -11,6 +11,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.*;
@@ -50,6 +51,13 @@ public class Beer {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "manufacturer_id", nullable = false)
     private Manufacturer manufacturer;
+
+    @Lob
+    @Column(name = "image")
+    private byte[] image;
+
+    @Column(name = "image_content_type")
+    private String imageContentType;
 
     public Beer(String name, BigDecimal abv, BeerType type, String description, Manufacturer manufacturer) {
         this.name = name;

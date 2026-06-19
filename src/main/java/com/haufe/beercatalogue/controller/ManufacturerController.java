@@ -1,8 +1,10 @@
 package com.haufe.beercatalogue.controller;
 
 import java.net.URI;
-import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.haufe.beercatalogue.controller.dto.ManufacturerRequest;
@@ -35,12 +38,16 @@ public class ManufacturerController {
     }
 
     @GetMapping
-    @Operation(summary = "List manufacturers", description = "Returns all manufacturers.")
+    @Operation(summary = "List manufacturers", description = "Returns manufacturers with pagination.")
     @ApiResponse(responseCode = "200", description = "Manufacturers returned successfully")
-    public List<ManufacturerResponse> findAll() {
-        return manufacturerService.findAll().stream()
-                .map(ManufacturerResponse::from)
-                .toList();
+    public Page<ManufacturerResponse> findAll(
+            @RequestParam(defaultValue = "0") final int page,
+            @RequestParam(defaultValue = "100") final int size
+    ) {
+        validatePagination(page, size);
+
+        final var pageable = PageRequest.of(page, size, Sort.by("name"));
+        return manufacturerService.findAll(pageable).map(ManufacturerResponse::from);
     }
 
     @GetMapping("/{id}")
@@ -91,5 +98,15 @@ public class ManufacturerController {
     public ResponseEntity<Void> delete(@PathVariable final Long id) {
         manufacturerService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void validatePagination(final int page, final int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("Page must be greater than or equal to 0");
+        }
+
+        if (size < 1) {
+            throw new IllegalArgumentException("Size must be greater than 0");
+        }
     }
 }
