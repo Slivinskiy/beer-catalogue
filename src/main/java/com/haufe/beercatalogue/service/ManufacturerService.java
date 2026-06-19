@@ -13,9 +13,11 @@ import com.haufe.beercatalogue.repository.ManufacturerRepository;
 @Transactional
 public class ManufacturerService {
     private final ManufacturerRepository manufacturerRepository;
+    private final AccessService accessService;
 
-    public ManufacturerService(final ManufacturerRepository manufacturerRepository) {
+    public ManufacturerService(final ManufacturerRepository manufacturerRepository, final AccessService accessService) {
         this.manufacturerRepository = manufacturerRepository;
+        this.accessService = accessService;
     }
 
     @Transactional(readOnly = true)
@@ -30,10 +32,12 @@ public class ManufacturerService {
     }
 
     public Manufacturer create(final Manufacturer manufacturer) {
+        accessService.requireAdmin();
         return manufacturerRepository.save(manufacturer);
     }
 
     public Manufacturer update(final Long id, final Manufacturer manufacturer) {
+        accessService.requireAdminOrOwnManufacturer(id);
         final var existingManufacturer = findById(id);
         existingManufacturer.setName(manufacturer.getName());
         existingManufacturer.setCountryOfOrigin(manufacturer.getCountryOfOrigin());
@@ -41,6 +45,7 @@ public class ManufacturerService {
     }
 
     public void delete(final Long id) {
+        accessService.requireAdminOrOwnManufacturer(id);
         final var manufacturer = findById(id);
         manufacturerRepository.delete(manufacturer);
     }

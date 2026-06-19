@@ -1,6 +1,7 @@
 package com.haufe.beercatalogue.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,8 +16,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.haufe.beercatalogue.domain.AppUser;
+import com.haufe.beercatalogue.domain.Role;
+import com.haufe.beercatalogue.repository.AppUserRepository;
 import com.haufe.beercatalogue.repository.BeerRepository;
 import com.haufe.beercatalogue.repository.ManufacturerRepository;
 
@@ -33,10 +38,18 @@ class ManufacturerControllerIntegrationTest {
     @Autowired
     private BeerRepository beerRepository;
 
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void setUp() {
+        appUserRepository.deleteAll();
         beerRepository.deleteAll();
         manufacturerRepository.deleteAll();
+        createAdminUser();
     }
 
     @Test
@@ -49,6 +62,7 @@ class ManufacturerControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/v1/manufacturers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createRequest))
                 .andExpect(status().isCreated())
@@ -76,6 +90,7 @@ class ManufacturerControllerIntegrationTest {
                 """;
 
         mockMvc.perform(put("/api/v1/manufacturers/{id}", createdManufacturer.getId())
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateRequest))
                 .andExpect(status().isOk())
@@ -83,7 +98,8 @@ class ManufacturerControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Guinness"))
                 .andExpect(jsonPath("$.countryOfOrigin").value("Ireland"));
 
-        mockMvc.perform(delete("/api/v1/manufacturers/{id}", createdManufacturer.getId()))
+        mockMvc.perform(delete("/api/v1/manufacturers/{id}", createdManufacturer.getId())
+                        .with(httpBasic("admin", "admin123")))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/v1/manufacturers/{id}", createdManufacturer.getId()))
@@ -101,6 +117,7 @@ class ManufacturerControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/v1/manufacturers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
@@ -108,5 +125,15 @@ class ManufacturerControllerIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.validationErrors.name").exists())
                 .andExpect(jsonPath("$.validationErrors.countryOfOrigin").exists());
+    }
+
+    private void createAdminUser() {
+        final var adminUser = new AppUser(
+                "admin",
+                passwordEncoder.encode("admin123"),
+                Role.ADMIN,
+                null
+        );
+        appUserRepository.save(adminUser);
     }
 }

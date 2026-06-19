@@ -1,6 +1,7 @@
 package com.haufe.beercatalogue.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -15,9 +16,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.haufe.beercatalogue.domain.AppUser;
 import com.haufe.beercatalogue.domain.Manufacturer;
+import com.haufe.beercatalogue.domain.Role;
+import com.haufe.beercatalogue.repository.AppUserRepository;
 import com.haufe.beercatalogue.repository.BeerRepository;
 import com.haufe.beercatalogue.repository.ManufacturerRepository;
 
@@ -34,10 +39,18 @@ class BeerControllerIntegrationTest {
     @Autowired
     private BeerRepository beerRepository;
 
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @BeforeEach
     void setUp() {
+        appUserRepository.deleteAll();
         beerRepository.deleteAll();
         manufacturerRepository.deleteAll();
+        createAdminUser();
     }
 
     @Test
@@ -66,6 +79,7 @@ class BeerControllerIntegrationTest {
                 """.formatted(secondManufacturer.getId());
 
         mockMvc.perform(post("/api/v1/beers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createFirstBeerRequest))
                 .andExpect(status().isCreated())
@@ -76,6 +90,7 @@ class BeerControllerIntegrationTest {
         final var firstBeer = beerRepository.findAll().getFirst();
 
         mockMvc.perform(post("/api/v1/beers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(createSecondBeerRequest))
                 .andExpect(status().isCreated())
@@ -107,6 +122,7 @@ class BeerControllerIntegrationTest {
                 """.formatted(secondManufacturer.getId());
 
         mockMvc.perform(put("/api/v1/beers/{id}", firstBeer.getId())
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(updateRequest))
                 .andExpect(status().isOk())
@@ -114,7 +130,8 @@ class BeerControllerIntegrationTest {
                 .andExpect(jsonPath("$.name").value("Black Heart"))
                 .andExpect(jsonPath("$.manufacturerId").value(secondManufacturer.getId()));
 
-        mockMvc.perform(delete("/api/v1/beers/{id}", firstBeer.getId()))
+        mockMvc.perform(delete("/api/v1/beers/{id}", firstBeer.getId())
+                        .with(httpBasic("admin", "admin123")))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/v1/beers/{id}", firstBeer.getId()))
@@ -135,6 +152,7 @@ class BeerControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/v1/beers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isBadRequest())
@@ -160,10 +178,21 @@ class BeerControllerIntegrationTest {
                 """;
 
         mockMvc.perform(post("/api/v1/beers")
+                        .with(httpBasic("admin", "admin123"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(request))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Manufacturer with id 999 not found"));
+    }
+
+    private void createAdminUser() {
+        final var adminUser = new AppUser(
+                "admin",
+                passwordEncoder.encode("admin123"),
+                Role.ADMIN,
+                null
+        );
+        appUserRepository.save(adminUser);
     }
 }
