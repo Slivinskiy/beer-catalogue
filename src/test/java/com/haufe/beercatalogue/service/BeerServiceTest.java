@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,8 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +51,19 @@ class BeerServiceTest {
         when(beerRepository.findAll()).thenReturn(beers);
 
         final var result = beerService.findAll();
+
+        assertEquals(beers, result);
+    }
+
+    @Test
+    void shouldReturnFilteredBeers() {
+        final var manufacturer = manufacturer(1L, "BrewDog", "Scotland");
+        final var beers = List.of(beer(1L, "Punk IPA", manufacturer));
+        final var sort = Sort.by(Sort.Direction.ASC, "name");
+        when(beerRepository.findAll(org.mockito.ArgumentMatchers.<Specification<Beer>>any(), eq(sort)))
+                .thenReturn(beers);
+
+        final var result = beerService.findAll("Punk", BeerType.IPA, new BigDecimal("5.60"), "Brew", sort);
 
         assertEquals(beers, result);
     }

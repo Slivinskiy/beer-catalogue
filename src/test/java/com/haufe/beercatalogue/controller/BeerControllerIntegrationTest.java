@@ -10,6 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.haufe.beercatalogue.domain.AppUser;
+import com.haufe.beercatalogue.domain.Beer;
+import com.haufe.beercatalogue.domain.BeerType;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.domain.Role;
 import com.haufe.beercatalogue.repository.AppUserRepository;
@@ -137,6 +141,46 @@ class BeerControllerIntegrationTest {
         mockMvc.perform(get("/api/v1/beers/{id}", firstBeer.getId()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void shouldFilterBeersByNameTypeAbvAndManufacturer() throws Exception {
+        final var brewdog = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        final var guinness = manufacturerRepository.save(new Manufacturer("Guinness", "Ireland"));
+
+        beerRepository.save(new Beer(
+                "Punk IPA",
+                new BigDecimal("5.60"),
+                BeerType.IPA,
+                "Classic IPA",
+                brewdog
+        ));
+        beerRepository.save(new Beer(
+                "Hazy Jane",
+                new BigDecimal("5.00"),
+                BeerType.IPA,
+                "Hazy IPA",
+                brewdog
+        ));
+        beerRepository.save(new Beer(
+                "Foreign Extra Stout",
+                new BigDecimal("7.50"),
+                BeerType.STOUT,
+                "Dark stout",
+                guinness
+        ));
+
+        mockMvc.perform(get("/api/v1/beers")
+                        .param("name", "punk")
+                        .param("type", "IPA")
+                        .param("abv", "5.60")
+                        .param("manufacturer", "brew")
+                        .param("sortBy", "name")
+                        .param("direction", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].name").value("Punk IPA"))
+                .andExpect(jsonPath("$[0].manufacturerId").value(brewdog.getId()));
     }
 
     @Test

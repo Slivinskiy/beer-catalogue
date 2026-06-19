@@ -1,12 +1,15 @@
 package com.haufe.beercatalogue.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.haufe.beercatalogue.domain.Beer;
+import com.haufe.beercatalogue.domain.BeerType;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.exception.NotFoundException;
 import com.haufe.beercatalogue.repository.BeerRepository;
@@ -37,6 +40,18 @@ public class BeerService {
     @Transactional(readOnly = true)
     public List<Beer> findAll(final Sort sort) {
         return beerRepository.findAll(sort);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Beer> findAll(
+            final String name,
+            final BeerType type,
+            final BigDecimal abv,
+            final String manufacturer,
+            final Sort sort
+    ) {
+        final var specification = buildSpecification(name, type, abv, manufacturer);
+        return beerRepository.findAll(specification, sort);
     }
 
     @Transactional(readOnly = true)
@@ -77,5 +92,46 @@ public class BeerService {
         final var manufacturerId = beer.getManufacturer().getId();
         return manufacturerRepository.findById(manufacturerId)
                 .orElseThrow(() -> new NotFoundException("Manufacturer with id " + manufacturerId + " not found"));
+    }
+
+    private Specification<Beer> buildSpecification(
+            final String name,
+            final BeerType type,
+            final BigDecimal abv,
+            final String manufacturer
+    ) {
+        Specification<Beer> specification = Specification.unrestricted();
+
+        if (name != null && !name.isBlank()) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(root.get("name")),
+                            "%" + name.toLowerCase() + "%"
+                    )
+            );
+        }
+
+        if (type != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("type"), type)
+            );
+        }
+
+        if (abv != null) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.equal(root.get("abv"), abv)
+            );
+        }
+
+        if (manufacturer != null && !manufacturer.isBlank()) {
+            specification = specification.and((root, query, criteriaBuilder) ->
+                    criteriaBuilder.like(
+                            criteriaBuilder.lower(root.join("manufacturer").get("name")),
+                            "%" + manufacturer.toLowerCase() + "%"
+                    )
+            );
+        }
+
+        return specification;
     }
 }

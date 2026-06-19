@@ -1,6 +1,7 @@
 package com.haufe.beercatalogue.controller;
 
 import java.net.URI;
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.data.domain.Sort;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.haufe.beercatalogue.controller.dto.BeerRequest;
 import com.haufe.beercatalogue.controller.dto.BeerResponse;
 import com.haufe.beercatalogue.domain.Beer;
+import com.haufe.beercatalogue.domain.BeerType;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.service.BeerService;
 
@@ -40,12 +42,16 @@ public class BeerController {
     }
 
     @GetMapping
-    @Operation(summary = "List beers", description = "Returns all beers with optional sorting.")
+    @Operation(summary = "List beers", description = "Returns beers with optional filtering and sorting.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Beers returned successfully"),
-            @ApiResponse(responseCode = "400", description = "Unsupported sort field or direction")
+            @ApiResponse(responseCode = "400", description = "Invalid filter, sort field, or sort direction")
     })
     public List<BeerResponse> findAll(
+            @RequestParam(required = false) final String name,
+            @RequestParam(required = false) final BeerType type,
+            @RequestParam(required = false) final BigDecimal abv,
+            @RequestParam(required = false) final String manufacturer,
             @RequestParam(defaultValue = "name") final String sortBy,
             @RequestParam(defaultValue = "asc") final String direction
     ) {
@@ -54,7 +60,7 @@ public class BeerController {
         final var sortDirection = Sort.Direction.fromString(direction);
         final var sort = Sort.by(sortDirection, sortBy);
 
-        return beerService.findAll(sort).stream()
+        return beerService.findAll(name, type, abv, manufacturer, sort).stream()
                 .map(BeerResponse::from)
                 .toList();
     }
