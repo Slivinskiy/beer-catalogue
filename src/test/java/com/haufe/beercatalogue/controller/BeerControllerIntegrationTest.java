@@ -2,10 +2,12 @@ package com.haufe.beercatalogue.controller;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -18,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -236,6 +239,46 @@ class BeerControllerIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Manufacturer with id 999 not found"));
+    }
+
+    @Test
+    void shouldUploadAndReturnBeerImage() throws Exception {
+        final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        final var beer = beerRepository.save(new Beer(
+                "Punk IPA",
+                new BigDecimal("5.60"),
+                BeerType.IPA,
+                "Classic IPA",
+                manufacturer
+        ));
+        final var file = new MockMultipartFile("file", "punk.png", "image/png", new byte[]{1, 2, 3});
+
+        mockMvc.perform(multipart("/api/v1/beers/{id}/image", beer.getId())
+                        .file(file)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/v1/beers/{id}/image", beer.getId()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("image/png"))
+                .andExpect(content().bytes(new byte[]{1, 2, 3}));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenBeerImageDoesNotExist() throws Exception {
+        final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        final var beer = beerRepository.save(new Beer(
+                "Punk IPA",
+                new BigDecimal("5.60"),
+                BeerType.IPA,
+                "Classic IPA",
+                manufacturer
+        ));
+
+        mockMvc.perform(get("/api/v1/beers/{id}/image", beer.getId()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("Image for beer with id " + beer.getId() + " not found"));
     }
 
     private void createAdminUser() {

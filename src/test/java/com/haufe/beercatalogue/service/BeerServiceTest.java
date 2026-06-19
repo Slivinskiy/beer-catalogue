@@ -1,6 +1,7 @@
 package com.haufe.beercatalogue.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.mock.web.MockMultipartFile;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -64,6 +66,34 @@ class BeerServiceTest {
         final var result = beerService.findById(1L);
 
         assertSame(beer, result);
+    }
+
+    @Test
+    void shouldUploadBeerImage() {
+        final var manufacturer = manufacturer(1L, "BrewDog", "Scotland");
+        final var beer = beer(1L, "Punk IPA", manufacturer);
+        final var file = new MockMultipartFile("file", "punk.png", "image/png", new byte[]{1, 2, 3});
+        when(beerRepository.findById(1L)).thenReturn(Optional.of(beer));
+        when(beerRepository.save(any(Beer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        beerService.uploadImage(1L, file);
+
+        assertArrayEquals(new byte[]{1, 2, 3}, beer.getImage());
+        assertEquals("image/png", beer.getImageContentType());
+    }
+
+    @Test
+    void shouldReturnBeerImage() {
+        final var manufacturer = manufacturer(1L, "BrewDog", "Scotland");
+        final var beer = beer(1L, "Punk IPA", manufacturer);
+        beer.setImage(new byte[]{1, 2, 3});
+        beer.setImageContentType("image/png");
+        when(beerRepository.findById(1L)).thenReturn(Optional.of(beer));
+
+        final var result = beerService.getImage(1L);
+
+        assertArrayEquals(new byte[]{1, 2, 3}, result.content());
+        assertEquals("image/png", result.contentType());
     }
 
     @Test
@@ -137,6 +167,15 @@ class BeerServiceTest {
         when(manufacturerRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> beerService.create(beer));
+    }
+
+    @Test
+    void shouldThrowWhenBeerImageIsMissing() {
+        final var manufacturer = manufacturer(1L, "BrewDog", "Scotland");
+        final var beer = beer(1L, "Punk IPA", manufacturer);
+        when(beerRepository.findById(1L)).thenReturn(Optional.of(beer));
+
+        assertThrows(NotFoundException.class, () -> beerService.getImage(1L));
     }
 
     private Manufacturer manufacturer(final Long id, final String name, final String countryOfOrigin) {

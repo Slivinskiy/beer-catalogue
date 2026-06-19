@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.haufe.beercatalogue.controller.dto.BeerRequest;
 import com.haufe.beercatalogue.controller.dto.BeerResponse;
@@ -77,6 +79,32 @@ public class BeerController {
     })
     public BeerResponse findById(@PathVariable final Long id) {
         return BeerResponse.from(beerService.findById(id));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload beer image", description = "Uploads or replaces the image for a beer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Image uploaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid image file"),
+            @ApiResponse(responseCode = "404", description = "Beer not found")
+    })
+    public ResponseEntity<Void> uploadImage(@PathVariable final Long id, @RequestParam("file") final MultipartFile file) {
+        beerService.uploadImage(id, file);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/image")
+    @Operation(summary = "Get beer image", description = "Returns the image for a beer.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Image returned successfully"),
+            @ApiResponse(responseCode = "404", description = "Beer or image not found")
+    })
+    public ResponseEntity<byte[]> getImage(@PathVariable final Long id) {
+        final var image = beerService.getImage(id);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(image.content());
     }
 
     @PostMapping
