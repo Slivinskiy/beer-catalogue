@@ -16,12 +16,13 @@ minikube image build -t beer-catalogue:latest .
 
 ## 3. Fill in the database secret values
 
-Edit [secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml) and replace:
+Before applying the manifests, open [secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml) and replace:
 
-- `<rds-endpoint>`
-- `<database-name>`
-- `<rds-username>`
-- `<rds-password>`
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+
+with real PostgreSQL values.
 
 ## 4. Apply the manifests
 

@@ -91,6 +91,7 @@ The application currently uses two runtime modes:
 
 Environment variables required for the `aws` profile:
 
+- `SPRING_PROFILES_ACTIVE`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
@@ -106,6 +107,18 @@ Default local mode with H2:
 ```
 
 Run against PostgreSQL / AWS profile:
+
+In IntelliJ:
+
+1. Open `Run | Edit Configurations`
+2. Select the Spring Boot run configuration
+3. In `Environment variables`, put:
+
+```text
+SPRING_PROFILES_ACTIVE=aws;SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:5432/<db>?sslmode=require;SPRING_DATASOURCE_USERNAME=<username>;SPRING_DATASOURCE_PASSWORD=<password>
+```
+
+Command-line alternative:
 
 ```bash
 SPRING_PROFILES_ACTIVE=aws \
@@ -139,19 +152,17 @@ docker run -p 8080:8080 beer-catalogue
 
 ### Run with Docker Compose
 
-Default local mode:
+`compose.yaml` is configured to start the application with the `aws` profile.
+
+Before starting Docker, open [compose.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/compose.yaml) and replace the datasource values with real PostgreSQL values:
+
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
+
+Run:
 
 ```bash
-docker compose up --build
-```
-
-Run the `aws` profile through Docker Compose:
-
-```bash
-SPRING_PROFILES_ACTIVE=aws \
-SPRING_DATASOURCE_URL='jdbc:postgresql://<host>:5432/<db>?sslmode=require' \
-SPRING_DATASOURCE_USERNAME='<username>' \
-SPRING_DATASOURCE_PASSWORD='<password>' \
 docker compose up --build
 ```
 
@@ -379,17 +390,11 @@ Detailed Kubernetes execution steps are documented in:
 
 ### Secret handling note
 
-The repository contains only a secret template structure.
+Before applying the Kubernetes manifests, open [kubernetes/secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml) and replace the datasource values with real PostgreSQL values:
 
-Real credentials should not be committed to git. In a real setup, secrets should be created in the cluster separately, for example with:
-
-```bash
-kubectl create secret generic beer-catalogue-db \
-  -n beer-catalogue \
-  --from-literal=SPRING_DATASOURCE_URL='...' \
-  --from-literal=SPRING_DATASOURCE_USERNAME='...' \
-  --from-literal=SPRING_DATASOURCE_PASSWORD='...'
-```
+- `SPRING_DATASOURCE_URL`
+- `SPRING_DATASOURCE_USERNAME`
+- `SPRING_DATASOURCE_PASSWORD`
 
 ## Testing
 
