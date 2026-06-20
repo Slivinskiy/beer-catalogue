@@ -134,6 +134,12 @@ SPRING_DATASOURCE_PASSWORD='<password>' \
 ./mvnw test
 ```
 
+### Postman Collection
+
+A Postman collection for local API testing is available at:
+
+- [postman/beer catalogue.postman_collection.json](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/postman/beer%20catalogue.postman_collection.json)
+
 ## Docker
 
 The project is Dockerized with a multi-stage `Dockerfile`.
@@ -285,12 +291,25 @@ Access rules:
 - authorization is enforced in the service layer through [AccessService.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/service/AccessService.java)
 - manufacturer ownership is checked against `manufacturerId`
 
-The application seeds one admin user on startup:
+At startup, the application creates:
+
+- 1 admin user
+- 2 manufacturer users, if manufacturers `2` and `7` exist
+
+The current PostgreSQL dataset is already enriched with around 10-11 manufacturers, so these demo users are available for testing.
+
+Available credentials:
 
 - username: `admin`
 - password: `admin123`
+- username: `manufacturer2`
+- password: `manufacturer2123`
+- linked manufacturer: `2`
+- username: `manufacturer7`
+- password: `manufacturer7123`
+- linked manufacturer: `7`
 
-Manufacturer users can be added in the database and linked to a `manufacturerId`.
+Manufacturer users are attached to a manufacturer through `manufacturerId`.
 
 ## Design Decisions and Tradeoffs
 
@@ -444,3 +463,9 @@ The current solution is intentionally pragmatic and assignment-focused. The foll
 
 - Introduce in-memory caching.
   - Caching frequently requested data, such as beer listings, manufacturer details, or image metadata, would reduce repeated database reads and improve response times for common read operations.
+
+- Add health-check monitoring and alerting.
+  - Basic health endpoints already exist, but production deployment should also include monitoring, alerting, and visibility around application health, failures, and database connectivity.
+
+- Add a role lifecycle mechanism.
+  - Role and user creation is currently manual. A dedicated admin-only provisioning flow would make it easier to create, update, disable, and reassign manufacturer users in a controlled way.
