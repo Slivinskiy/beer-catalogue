@@ -291,12 +291,9 @@ Access rules:
 - authorization is enforced in the service layer through [AccessService.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/service/AccessService.java)
 - manufacturer ownership is checked against `manufacturerId`
 
-At startup, the application creates:
+The application does not create users on startup.
 
-- 1 admin user
-- 2 manufacturer users, if manufacturers `2` and `7` exist
-
-The current PostgreSQL dataset is already enriched with around 10-11 manufacturers, so these demo users are available for testing.
+The current PostgreSQL dataset is already enriched with around 10-11 manufacturers and pre-created users for testing.
 
 Available credentials:
 
