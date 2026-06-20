@@ -1,5 +1,8 @@
 spring:
   application:
     name: beer-catalogue
-  mvc:
-      log-request-details: true
+
+logging:
+  level:
+    root: INFO
+    com.haufe.beercatalogue: INFO

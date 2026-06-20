@@ -381,6 +381,21 @@ Schema handling:
 
 This allows Hibernate to create missing tables and update the schema on startup.
 
+## Logging
+
+The application includes HTTP request/response logging for the API layer.
+
+Logged information:
+
+- request method
+- request URI
+- query string
+- response status
+- execution time
+- request and response body for textual content such as JSON
+
+Logging is implemented through a servlet filter and uses Spring Boot's default SLF4J/Logback setup.
+
 ## Cloud Deployment
 
 Kubernetes deployment files are provided under [kubernetes](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes).
