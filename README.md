@@ -112,13 +112,7 @@ In IntelliJ:
 1. Open `Run | Edit Configurations`
 2. Select the Spring Boot run configuration
 3. Set `Active profiles` to `local`, or leave it empty because the application defaults to `local`
-4. Remove `SPRING_PROFILES_ACTIVE=aws` if it is still present
-5. Remove these environment variables for local H2 startup:
-   - `SPRING_DATASOURCE_URL`
-   - `SPRING_DATASOURCE_USERNAME`
-   - `SPRING_DATASOURCE_PASSWORD`
-6. Remove any program argument like `--spring.profiles.active=aws`
-7. Start the application
+4. Start the application
 
 Expected startup log:
 
@@ -312,65 +306,6 @@ Available credentials:
 
 Manufacturer users are attached to a manufacturer through a database relation.
 
-## Design Decisions and Tradeoffs
-
-### REST resource structure
-
-- Beer and manufacturer management is exposed as standard REST resources.
-- Beer image handling is implemented as a sub-resource: `/beers/{id}/image`.
-
-This keeps the main beer JSON payload clean and avoids embedding binary data in regular CRUD responses.
-
-### Flexible beer search
-
-- Search is implemented as query parameters on the main beer listing endpoint.
-- JPA `Specification` is used to build dynamic queries.
-
-Tradeoff:
-
-- this avoids creating many repository methods for all filter combinations
-- exact ABV matching is simple and sufficient for the assignment, but an ABV range could be a future improvement
-
-### Pagination
-
-- Pagination is implemented on listing endpoints using Spring Data paging
-- the API returns a custom [PagedResponse.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/controller/dto/PagedResponse.java) contract
-- page size is capped at `100`
-
-Tradeoff:
-
-- stable external response shape
-- slightly more code than returning Spring `Page` directly
-
-### Role-based access
-
-- ownership checks are enforced in the service layer instead of complex expression-based security
-
-Tradeoff:
-
-- logic is explicit and easy to review
-- security rules are slightly more imperative, but simpler for this assignment
-
-### Image storage
-
-- Beer images are stored in PostgreSQL as binary data for simplicity
-
-Tradeoff:
-
-- easy to implement and self-contained
-- not ideal for production-scale file storage
-
-Recommended future improvement:
-
-- move images to S3
-- keep only object metadata / object key in the database
-
-### Profiles and database choice
-
-- H2 is used for local runtime and tests
-- the `aws` profile switches the application to PostgreSQL
-- Docker Compose and Kubernetes use the `aws` profile
-
 ## AWS-Hosted Database (PostgreSQL)
 
 The application is designed to connect to PostgreSQL, including AWS RDS.
@@ -457,6 +392,60 @@ The project currently uses both unit and integration tests.
   - search
   - pagination
   - image upload and retrieval
+
+## Design Decisions and Tradeoffs
+
+### REST resource structure
+
+- Beer and manufacturer management is exposed as standard REST resources.
+- Beer image handling is implemented as a sub-resource: `/beers/{id}/image`.
+
+This keeps the main beer JSON payload clean and avoids embedding binary data in regular CRUD responses.
+
+### Flexible beer search
+
+- Search is implemented as query parameters on the main beer listing endpoint.
+- JPA `Specification` is used to build dynamic queries.
+
+Tradeoff:
+
+- this avoids creating many repository methods for all filter combinations
+- exact ABV matching is simple and sufficient for the assignment, but an ABV range could be a future improvement
+
+### Pagination
+
+- Pagination is implemented on listing endpoints using Spring Data paging
+- the API returns a custom [PagedResponse.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/controller/dto/PagedResponse.java) contract
+- page size is capped at `100`
+
+Tradeoff:
+
+- stable external response shape
+- slightly more code than returning Spring `Page` directly
+
+### Role-based access
+
+- ownership checks are enforced in the service layer instead of complex expression-based security
+
+Tradeoff:
+
+- logic is explicit and easy to review
+- security rules are slightly more imperative, but simpler for this assignment
+
+### Image storage
+
+- Beer images are stored in PostgreSQL as binary data for simplicity
+
+Tradeoff:
+
+- easy to implement and self-contained
+- not ideal for production-scale file storage
+
+### Profiles and database choice
+
+- H2 is used for local runtime and tests
+- the `aws` profile switches the application to PostgreSQL
+- Docker Compose and Kubernetes use the `aws` profile
 
 ## Useful Links
 
