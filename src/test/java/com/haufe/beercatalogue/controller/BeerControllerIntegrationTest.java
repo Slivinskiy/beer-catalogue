@@ -1,6 +1,7 @@
 package com.haufe.beercatalogue.controller;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -221,6 +222,33 @@ class BeerControllerIntegrationTest {
     }
 
     @Test
+    void shouldReturnBadRequestWhenBeerPageSizeExceedsMaximum() throws Exception {
+        mockMvc.perform(get("/api/v1/beers")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Size must be less than or equal to 100"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenBeerTypeParameterIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/v1/beers")
+                        .param("type", "INVALID"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Invalid value 'INVALID' for request parameter 'type'"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenSortDirectionIsInvalid() throws Exception {
+        mockMvc.perform(get("/api/v1/beers")
+                        .param("direction", "sideways"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message", containsString("Invalid value")));
+    }
+
+    @Test
     void shouldReturnNotFoundWhenBeerManufacturerDoesNotExist() throws Exception {
         final var request = """
                 {
@@ -279,6 +307,31 @@ class BeerControllerIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.message").value("Image for beer with id " + beer.getId() + " not found"));
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenBeerImageIsTooLarge() throws Exception {
+        final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        final var beer = beerRepository.save(new Beer(
+                "Punk IPA",
+                new BigDecimal("5.60"),
+                BeerType.IPA,
+                "Classic IPA",
+                manufacturer
+        ));
+        final var file = new MockMultipartFile(
+                "file",
+                "punk.png",
+                "image/png",
+                new byte[5 * 1024 * 1024 + 1]
+        );
+
+        mockMvc.perform(multipart("/api/v1/beers/{id}/image", beer.getId())
+                        .file(file)
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Image file size must not exceed 5 MB"));
     }
 
     private void createAdminUser() {

@@ -76,7 +76,7 @@ class SecurityIntegrationTest {
     @Test
     void shouldAllowManufacturerUserToEditOwnManufacturer() throws Exception {
         final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
-        createManufacturerUser("brewdog", "password", manufacturer.getId());
+        createManufacturerUser("brewdog", "password", manufacturer);
 
         final var request = """
                 {
@@ -97,7 +97,7 @@ class SecurityIntegrationTest {
     void shouldForbidManufacturerUserFromEditingOtherManufacturer() throws Exception {
         final var ownManufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
         final var otherManufacturer = manufacturerRepository.save(new Manufacturer("Guinness", "Ireland"));
-        createManufacturerUser("brewdog", "password", ownManufacturer.getId());
+        createManufacturerUser("brewdog", "password", ownManufacturer);
 
         final var request = """
                 {
@@ -117,7 +117,7 @@ class SecurityIntegrationTest {
     @Test
     void shouldAllowManufacturerUserToCreateBeerForOwnManufacturer() throws Exception {
         final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
-        createManufacturerUser("brewdog", "password", manufacturer.getId());
+        createManufacturerUser("brewdog", "password", manufacturer);
 
         final var request = """
                 {
@@ -141,7 +141,7 @@ class SecurityIntegrationTest {
     void shouldForbidManufacturerUserFromCreatingBeerForOtherManufacturer() throws Exception {
         final var ownManufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
         final var otherManufacturer = manufacturerRepository.save(new Manufacturer("Guinness", "Ireland"));
-        createManufacturerUser("brewdog", "password", ownManufacturer.getId());
+        createManufacturerUser("brewdog", "password", ownManufacturer);
 
         final var request = """
                 {
@@ -171,12 +171,12 @@ class SecurityIntegrationTest {
         appUserRepository.save(adminUser);
     }
 
-    private void createManufacturerUser(final String username, final String password, final Long manufacturerId) {
+    private void createManufacturerUser(final String username, final String password, final Manufacturer manufacturer) {
         final var appUser = new AppUser(
                 username,
                 passwordEncoder.encode(password),
                 Role.MANUFACTURER,
-                manufacturerId
+                manufacturer
         );
         appUserRepository.save(appUser);
     }

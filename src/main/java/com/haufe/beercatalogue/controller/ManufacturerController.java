@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.haufe.beercatalogue.controller.dto.ManufacturerRequest;
 import com.haufe.beercatalogue.controller.dto.ManufacturerResponse;
+import com.haufe.beercatalogue.controller.dto.PagedResponse;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.service.ManufacturerService;
 
@@ -31,6 +32,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/manufacturers")
 @Tag(name = "Manufacturers", description = "Browse and manage beer manufacturers.")
 public class ManufacturerController {
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final ManufacturerService manufacturerService;
 
     public ManufacturerController(final ManufacturerService manufacturerService) {
@@ -40,14 +43,15 @@ public class ManufacturerController {
     @GetMapping
     @Operation(summary = "List manufacturers", description = "Returns manufacturers with pagination.")
     @ApiResponse(responseCode = "200", description = "Manufacturers returned successfully")
-    public Page<ManufacturerResponse> findAll(
+    public PagedResponse<ManufacturerResponse> findAll(
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size
     ) {
         validatePagination(page, size);
 
         final var pageable = PageRequest.of(page, size, Sort.by("name"));
-        return manufacturerService.findAll(pageable).map(ManufacturerResponse::from);
+        final Page<ManufacturerResponse> manufacturers = manufacturerService.findAll(pageable).map(ManufacturerResponse::from);
+        return PagedResponse.from(manufacturers);
     }
 
     @GetMapping("/{id}")
@@ -107,6 +111,10 @@ public class ManufacturerController {
 
         if (size < 1) {
             throw new IllegalArgumentException("Size must be greater than 0");
+        }
+
+        if (size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("Size must be less than or equal to " + MAX_PAGE_SIZE);
         }
     }
 }

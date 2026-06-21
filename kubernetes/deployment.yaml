@@ -13,6 +13,10 @@ spec:
       labels:
         app: beer-catalogue
     spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: beer-catalogue
           image: beer-catalogue:latest
@@ -20,6 +24,13 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+          securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: aws
@@ -50,3 +61,10 @@ spec:
               port: http
             initialDelaySeconds: 30
             periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

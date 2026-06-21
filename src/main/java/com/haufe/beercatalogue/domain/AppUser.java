@@ -7,6 +7,8 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -33,13 +35,14 @@ public class AppUser {
     @Column(nullable = false)
     private Role role;
 
-    @Column(name = "manufacturer_id")
-    private Long manufacturerId;
+    @ManyToOne
+    @JoinColumn(name = "manufacturer_id")
+    private Manufacturer manufacturer;
 
-    public AppUser(final String username, final String password, final Role role, final Long manufacturerId) {
+    public AppUser(final String username, final String password, final Role role, final Manufacturer manufacturer) {
         this.username = username;
         this.password = password;
         this.role = role;
-        this.manufacturerId = manufacturerId;
+        this.manufacturer = manufacturer;
     }
 }

@@ -1,6 +1,8 @@
 spring:
   application:
     name: beer-catalogue
+  profiles:
+    default: local
 
 logging:
   level:

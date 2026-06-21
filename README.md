@@ -10,8 +10,8 @@
 - Spring Validation
 - Spring Boot Actuator
 - SpringDoc OpenAPI / Swagger UI
-- H2 Database
-- PostgreSQL
+- H2 Database for local runtime and tests
+- PostgreSQL for AWS / cloud runtime
 - Maven
 - Docker / Docker Compose
 - Kubernetes / Minikube
@@ -29,7 +29,7 @@ The application supports:
 - beer image upload and retrieval
 - role-based access control
 - local execution with H2
-- AWS/PostgreSQL execution through a dedicated Spring profile
+- AWS hosted PostgreSQL execution
 - containerized execution with Docker
 - Kubernetes deployment with Minikube-ready manifests
 
@@ -72,26 +72,31 @@ Security is backed by a database user model:
 - `username`
 - `password`
 - `role`
-- optional `manufacturerId`
+- optional linked `manufacturer`
 
-`manufacturerId` is used to link a manufacturer user to the manufacturer they are allowed to manage.
+The linked manufacturer is used to determine what a manufacturer user is allowed to manage.
 
-## Active Profiles
+## Runtime Configuration
 
-The application currently uses two runtime modes:
+The application uses two runtime modes:
 
-- `default`
-  - local development profile by convention
-  - uses the in-memory H2 database
-  - no additional datasource configuration is required
+- `local`
+  - local development mode
+  - uses in-memory H2
+  - seeds demo manufacturers and users on startup
 - `aws`
-  - uses PostgreSQL
-  - datasource configuration is provided through environment variables
-  - configuration file: [application-aws.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/resources/application-aws.yaml)
+  - cloud/runtime mode
+  - uses PostgreSQL through environment variables
 
-Environment variables required for the `aws` profile:
+If no profile is selected, the application defaults to `local`.
 
-- `SPRING_PROFILES_ACTIVE`
+Datasource configuration is defined in:
+
+- [application.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/resources/application.yaml)
+- [application-aws.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/resources/application-aws.yaml)
+
+Environment variables required for `aws` runtime execution:
+
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
@@ -100,31 +105,30 @@ Environment variables required for the `aws` profile:
 
 ### Run with Maven
 
-Default local mode with H2:
-
-```bash
-./mvnw spring-boot:run
-```
-
-Run against PostgreSQL / AWS profile:
+Run locally with the default H2 setup:
 
 In IntelliJ:
 
 1. Open `Run | Edit Configurations`
 2. Select the Spring Boot run configuration
-3. In `Environment variables`, put:
+3. Set `Active profiles` to `local`, or leave it empty because the application defaults to `local`
+4. Remove `SPRING_PROFILES_ACTIVE=aws` if it is still present
+5. Remove these environment variables for local H2 startup:
+   - `SPRING_DATASOURCE_URL`
+   - `SPRING_DATASOURCE_USERNAME`
+   - `SPRING_DATASOURCE_PASSWORD`
+6. Remove any program argument like `--spring.profiles.active=aws`
+7. Start the application
+
+Expected startup log:
 
 ```text
-SPRING_PROFILES_ACTIVE=aws;SPRING_DATASOURCE_URL=jdbc:postgresql://<host>:5432/<db>?sslmode=require;SPRING_DATASOURCE_USERNAME=<username>;SPRING_DATASOURCE_PASSWORD=<password>
+The following 1 profile is active: "local"
 ```
 
 Command-line alternative:
 
 ```bash
-SPRING_PROFILES_ACTIVE=aws \
-SPRING_DATASOURCE_URL='jdbc:postgresql://<host>:5432/<db>?sslmode=require' \
-SPRING_DATASOURCE_USERNAME='<username>' \
-SPRING_DATASOURCE_PASSWORD='<password>' \
 ./mvnw spring-boot:run
 ```
 
@@ -133,6 +137,8 @@ SPRING_DATASOURCE_PASSWORD='<password>' \
 ```bash
 ./mvnw test
 ```
+
+Tests use a separate in-memory H2 database and do not require PostgreSQL credentials.
 
 ### Postman Collection
 
@@ -150,7 +156,7 @@ The project is Dockerized with a multi-stage `Dockerfile`.
 docker build -t beer-catalogue .
 ```
 
-### Run with the default profile
+### Run
 
 ```bash
 docker run -p 8080:8080 beer-catalogue
@@ -158,7 +164,7 @@ docker run -p 8080:8080 beer-catalogue
 
 ### Run with Docker Compose
 
-`compose.yaml` is configured to start the application with the `aws` profile.
+`compose.yaml` starts the application with `SPRING_PROFILES_ACTIVE=aws`.
 
 Before starting Docker, open [compose.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/compose.yaml) and replace the datasource values with real PostgreSQL values:
 
@@ -289,11 +295,9 @@ Access rules:
 - Spring Security authenticates the request from Basic Auth credentials
 - the authenticated user is loaded from the `app_users` table
 - authorization is enforced in the service layer through [AccessService.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/service/AccessService.java)
-- manufacturer ownership is checked against `manufacturerId`
+- manufacturer ownership is checked against the linked manufacturer relation
 
-The application does not create users on startup.
-
-The current PostgreSQL dataset is already enriched with around 10-11 manufacturers and pre-created users for testing.
+The default local H2 setup seeds demo manufacturers and users on startup.
 
 Available credentials:
 
@@ -301,12 +305,12 @@ Available credentials:
 - password: `admin123`
 - username: `manufacturer2`
 - password: `manufacturer2123`
-- linked manufacturer: `2`
+- linked manufacturer: `Guinness`
 - username: `manufacturer7`
 - password: `manufacturer7123`
-- linked manufacturer: `7`
+- linked manufacturer: `Stone Brewing`
 
-Manufacturer users are attached to a manufacturer through `manufacturerId`.
+Manufacturer users are attached to a manufacturer through a database relation.
 
 ## Design Decisions and Tradeoffs
 
@@ -329,13 +333,14 @@ Tradeoff:
 
 ### Pagination
 
-- Pagination is implemented on listing endpoints using Spring Data `Page`
-- the API currently returns Spring `Page` directly for simplicity
+- Pagination is implemented on listing endpoints using Spring Data paging
+- the API returns a custom [PagedResponse.java](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/java/com/haufe/beercatalogue/controller/dto/PagedResponse.java) contract
+- page size is capped at `100`
 
 Tradeoff:
 
-- very little code
-- but a custom paged DTO would provide a more stable external response contract
+- stable external response shape
+- slightly more code than returning Spring `Page` directly
 
 ### Role-based access
 
@@ -362,17 +367,18 @@ Recommended future improvement:
 
 ### Profiles and database choice
 
-- H2 is used for local default execution because it keeps setup friction low
-- PostgreSQL is used for the `aws` profile because it matches the target deployment architecture
+- H2 is used for local runtime and tests
+- the `aws` profile switches the application to PostgreSQL
+- Docker Compose and Kubernetes use the `aws` profile
 
 ## AWS-Hosted Database (PostgreSQL)
 
-The `aws` profile is designed to connect to PostgreSQL, including AWS RDS.
+The application is designed to connect to PostgreSQL, including AWS RDS.
 
 The application relies on:
 
 - PostgreSQL JDBC driver in [pom.xml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/pom.xml)
-- `application-aws.yaml` for profile-specific JPA settings
+- [application.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/src/main/resources/application.yaml) for shared datasource and JPA settings
 - environment variables for datasource credentials
 
 Schema handling:
@@ -407,6 +413,7 @@ Included resources:
 - deployment
 - service
 - kustomization file
+- deployment values reference file
 
 The provided deployment is Minikube-friendly and uses:
 
@@ -418,6 +425,9 @@ The provided deployment is Minikube-friendly and uses:
 Detailed Kubernetes execution steps are documented in:
 
 - [kubernetes/README.md](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/README.md)
+- [kubernetes/values.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/values.yaml)
+
+`values.yaml` is used only as a reference for non-secret deployment settings. Kubernetes datasource credentials are defined only in [kubernetes/secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml).
 
 ### Secret handling note
 

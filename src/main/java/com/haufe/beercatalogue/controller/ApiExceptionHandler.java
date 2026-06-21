@@ -5,14 +5,17 @@ import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.haufe.beercatalogue.controller.dto.ErrorResponse;
+import com.haufe.beercatalogue.exception.ConflictException;
 import com.haufe.beercatalogue.exception.NotFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +47,14 @@ public class ApiExceptionHandler {
         return buildErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI(), null);
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(
+            final ConflictException exception,
+            final HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationError(
             final MethodArgumentNotValidException exception,
@@ -71,6 +82,35 @@ public class ApiExceptionHandler {
         return buildErrorResponse(
                 HttpStatus.BAD_REQUEST,
                 "Malformed request body",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(
+            final MethodArgumentTypeMismatchException exception,
+            final HttpServletRequest request
+    ) {
+        final var parameterName = exception.getName();
+        final var invalidValue = exception.getValue();
+
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Invalid value '" + invalidValue + "' for request parameter '" + parameterName + "'",
+                request.getRequestURI(),
+                null
+        );
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+            final DataIntegrityViolationException exception,
+            final HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "Operation could not be completed because the resource is still referenced",
                 request.getRequestURI(),
                 null
         );

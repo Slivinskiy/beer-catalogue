@@ -20,6 +20,7 @@ import com.haufe.beercatalogue.repository.ManufacturerRepository;
 @Service
 @Transactional
 public class BeerService {
+    private static final long MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
     private static final List<String> ALLOWED_IMAGE_CONTENT_TYPES = List.of(
             "image/jpeg",
             "image/png",
@@ -161,6 +162,10 @@ public class BeerService {
 
         if (file.getContentType() == null || !ALLOWED_IMAGE_CONTENT_TYPES.contains(file.getContentType())) {
             throw new IllegalArgumentException("Unsupported image content type");
+        }
+
+        if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
+            throw new IllegalArgumentException("Image file size must not exceed 5 MB");
         }
     }
 

@@ -178,6 +178,18 @@ class BeerServiceTest {
         assertThrows(NotFoundException.class, () -> beerService.getImage(1L));
     }
 
+    @Test
+    void shouldThrowWhenBeerImageIsTooLarge() {
+        final var file = new MockMultipartFile(
+                "file",
+                "punk.png",
+                "image/png",
+                new byte[5 * 1024 * 1024 + 1]
+        );
+
+        assertThrows(IllegalArgumentException.class, () -> beerService.uploadImage(1L, file));
+    }
+
     private Manufacturer manufacturer(final Long id, final String name, final String countryOfOrigin) {
         final var manufacturer = new Manufacturer(name, countryOfOrigin);
         manufacturer.setId(id);

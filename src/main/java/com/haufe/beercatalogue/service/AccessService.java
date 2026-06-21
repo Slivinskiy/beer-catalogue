@@ -28,10 +28,14 @@ public class AccessService {
         if (currentUser.getRole() == Role.ADMIN) {
             return;
         }
-        if (currentUser.getRole() == Role.MANUFACTURER && manufacturerId != null && manufacturerId.equals(currentUser.getManufacturerId())) {
+        final var currentManufacturer = currentUser.getManufacturer();
+        if (currentUser.getRole() == Role.MANUFACTURER
+                && manufacturerId != null
+                && currentManufacturer != null
+                && manufacturerId.equals(currentManufacturer.getId())) {
             return;
         }
-        throw new AccessDeniedException("You can only modify your own manufacturer data");
+        throw new AccessDeniedException("You can only modify resources that belong to your manufacturer");
     }
 
     private com.haufe.beercatalogue.domain.AppUser getCurrentUser() {

@@ -23,12 +23,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.haufe.beercatalogue.controller.dto.BeerRequest;
 import com.haufe.beercatalogue.controller.dto.BeerResponse;
+import com.haufe.beercatalogue.controller.dto.PagedResponse;
 import com.haufe.beercatalogue.domain.Beer;
 import com.haufe.beercatalogue.domain.BeerType;
 import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.service.BeerService;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -39,6 +42,7 @@ import jakarta.validation.Valid;
 @Tag(name = "Beers", description = "Browse and manage beers.")
 public class BeerController {
     private static final List<String> ALLOWED_SORT_FIELDS = List.of("name", "abv", "type");
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final BeerService beerService;
 
@@ -52,14 +56,22 @@ public class BeerController {
             @ApiResponse(responseCode = "200", description = "Beers returned successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid filter, sort field, sort direction, or pagination")
     })
-    public Page<BeerResponse> findAll(
+    public PagedResponse<BeerResponse> findAll(
             @RequestParam(required = false) final String name,
             @RequestParam(required = false) final BeerType type,
             @RequestParam(required = false) final BigDecimal abv,
             @RequestParam(required = false) final String manufacturer,
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "100") final int size,
+            @Parameter(
+                    description = "Beer field used for sorting. Allowed values: name, abv, type.",
+                    schema = @Schema(allowableValues = {"name", "abv", "type"}, defaultValue = "name")
+            )
             @RequestParam(defaultValue = "name") final String sortBy,
+            @Parameter(
+                    description = "Sort direction.",
+                    schema = @Schema(allowableValues = {"asc", "desc"}, defaultValue = "asc")
+            )
             @RequestParam(defaultValue = "asc") final String direction
     ) {
         validateSortField(sortBy);
@@ -68,7 +80,8 @@ public class BeerController {
         final var sortDirection = Sort.Direction.fromString(direction);
         final Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sortBy));
 
-        return beerService.findAll(name, type, abv, manufacturer, pageable).map(BeerResponse::from);
+        final Page<BeerResponse> beers = beerService.findAll(name, type, abv, manufacturer, pageable).map(BeerResponse::from);
+        return PagedResponse.from(beers);
     }
 
     @GetMapping("/{id}")
@@ -161,6 +174,10 @@ public class BeerController {
 
         if (size < 1) {
             throw new IllegalArgumentException("Size must be greater than 0");
+        }
+
+        if (size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("Size must be less than or equal to " + MAX_PAGE_SIZE);
         }
     }
 

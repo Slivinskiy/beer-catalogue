@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import com.haufe.beercatalogue.domain.Beer;
 
 public interface BeerRepository extends JpaRepository<Beer, Long>, JpaSpecificationExecutor<Beer> {
+    boolean existsByManufacturer_Id(Long manufacturerId);
 }

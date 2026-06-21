@@ -20,10 +20,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.haufe.beercatalogue.domain.AppUser;
+import com.haufe.beercatalogue.domain.Beer;
+import com.haufe.beercatalogue.domain.BeerType;
+import com.haufe.beercatalogue.domain.Manufacturer;
 import com.haufe.beercatalogue.domain.Role;
 import com.haufe.beercatalogue.repository.AppUserRepository;
 import com.haufe.beercatalogue.repository.BeerRepository;
 import com.haufe.beercatalogue.repository.ManufacturerRepository;
+
+import java.math.BigDecimal;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -127,6 +132,48 @@ class ManufacturerControllerIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Validation failed"))
                 .andExpect(jsonPath("$.validationErrors.name").exists())
                 .andExpect(jsonPath("$.validationErrors.countryOfOrigin").exists());
+    }
+
+    @Test
+    void shouldReturnBadRequestWhenManufacturerPageSizeExceedsMaximum() throws Exception {
+        mockMvc.perform(get("/api/v1/manufacturers")
+                        .param("size", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("Size must be less than or equal to 100"));
+    }
+
+    @Test
+    void shouldReturnConflictWhenDeletingManufacturerWithBeers() throws Exception {
+        final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        beerRepository.save(new Beer(
+                "Punk IPA",
+                new BigDecimal("5.60"),
+                BeerType.IPA,
+                "Classic IPA",
+                manufacturer
+        ));
+
+        mockMvc.perform(delete("/api/v1/manufacturers/{id}", manufacturer.getId())
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
+    void shouldReturnConflictWhenDeletingManufacturerWithUsers() throws Exception {
+        final var manufacturer = manufacturerRepository.save(new Manufacturer("BrewDog", "Scotland"));
+        appUserRepository.save(new AppUser(
+                "brewdog",
+                passwordEncoder.encode("password"),
+                Role.MANUFACTURER,
+                manufacturer
+        ));
+
+        mockMvc.perform(delete("/api/v1/manufacturers/{id}", manufacturer.getId())
+                        .with(httpBasic("admin", "admin123")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
     }
 
     private void createAdminUser() {

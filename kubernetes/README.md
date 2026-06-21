@@ -2,6 +2,12 @@
 
 This folder contains a minimal Minikube-ready deployment for the `beer-catalogue` app.
 
+A reference deployment values file is available at:
+
+- [values.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/values.yaml)
+
+`values.yaml` contains non-secret deployment settings only.
+
 ## 1. Start Minikube
 
 ```bash
@@ -23,6 +29,10 @@ Before applying the manifests, open [secret.yaml](/Users/sviatoslavslivinskiy/Id
 - `SPRING_DATASOURCE_PASSWORD`
 
 with real PostgreSQL values.
+
+You can also use [values.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/values.yaml) as the central reference for image, service, resource, probe, and non-secret database deployment values used by the deployment.
+
+Datasource credentials are defined only in [secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml).
 
 ## 4. Apply the manifests
 

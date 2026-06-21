@@ -20,13 +20,22 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import com.haufe.beercatalogue.domain.Manufacturer;
+import com.haufe.beercatalogue.exception.ConflictException;
 import com.haufe.beercatalogue.exception.NotFoundException;
+import com.haufe.beercatalogue.repository.AppUserRepository;
+import com.haufe.beercatalogue.repository.BeerRepository;
 import com.haufe.beercatalogue.repository.ManufacturerRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ManufacturerServiceTest {
     @Mock
     private ManufacturerRepository manufacturerRepository;
+
+    @Mock
+    private BeerRepository beerRepository;
+
+    @Mock
+    private AppUserRepository appUserRepository;
 
     @Mock
     private AccessService accessService;
@@ -97,9 +106,32 @@ class ManufacturerServiceTest {
         final var manufacturer = new Manufacturer("BrewDog", "Scotland");
         manufacturer.setId(1L);
         when(manufacturerRepository.findById(1L)).thenReturn(Optional.of(manufacturer));
+        when(beerRepository.existsByManufacturer_Id(1L)).thenReturn(false);
+        when(appUserRepository.existsByManufacturer_Id(1L)).thenReturn(false);
 
         manufacturerService.delete(1L);
 
         verify(manufacturerRepository).delete(manufacturer);
+    }
+
+    @Test
+    void shouldThrowConflictWhenManufacturerHasBeers() {
+        final var manufacturer = new Manufacturer("BrewDog", "Scotland");
+        manufacturer.setId(1L);
+        when(manufacturerRepository.findById(1L)).thenReturn(Optional.of(manufacturer));
+        when(beerRepository.existsByManufacturer_Id(1L)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> manufacturerService.delete(1L));
+    }
+
+    @Test
+    void shouldThrowConflictWhenManufacturerHasUsers() {
+        final var manufacturer = new Manufacturer("BrewDog", "Scotland");
+        manufacturer.setId(1L);
+        when(manufacturerRepository.findById(1L)).thenReturn(Optional.of(manufacturer));
+        when(beerRepository.existsByManufacturer_Id(1L)).thenReturn(false);
+        when(appUserRepository.existsByManufacturer_Id(1L)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> manufacturerService.delete(1L));
     }
 }

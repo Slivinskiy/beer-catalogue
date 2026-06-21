@@ -9,4 +9,6 @@ import com.haufe.beercatalogue.domain.AppUser;
 public interface AppUserRepository extends JpaRepository<AppUser, Long> {
 
     Optional<AppUser> findByUsername(String username);
+
+    boolean existsByManufacturer_Id(Long manufacturerId);
 }

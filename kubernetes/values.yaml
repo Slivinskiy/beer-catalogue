@@ -1,0 +1,35 @@
+app:
+  profile: aws
+
+image:
+  repository: beer-catalogue
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: NodePort
+  port: 80
+  targetPort: 8080
+  nodePort: 30080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  readiness:
+    path: /actuator/health
+    initialDelaySeconds: 20
+    periodSeconds: 10
+  liveness:
+    path: /actuator/health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+
+database:
+  secretName: beer-catalogue-db
+  sslMode: require
