@@ -97,6 +97,7 @@ Datasource configuration is defined in:
 
 Environment variables required for `aws` runtime execution:
 
+- `SPRING_PROFILES_ACTIVE=aws`
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
