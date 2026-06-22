@@ -364,6 +364,8 @@ Detailed Kubernetes execution steps are documented in:
 
 `values.yaml` is used only as a reference for non-secret deployment settings. Kubernetes datasource credentials are defined only in [kubernetes/secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml).
 
+Database credentials for the Kubernetes deployment are stored in the Kubernetes Secret manifest and injected into the container as environment variables.
+
 ### Secret handling note
 
 Before applying the Kubernetes manifests, open [kubernetes/secret.yaml](/Users/sviatoslavslivinskiy/IdeaProjects/beer-catalogue/kubernetes/secret.yaml) and replace the datasource values with real PostgreSQL values:
